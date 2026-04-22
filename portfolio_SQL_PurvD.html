@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purv D — SQL Finance Project</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0D1B2A; --blue: #1A3A5C; --accent: #2D7DD2; --gold: #E8A838;
+    --cream: #F5F0E8; --muted: #8A99A8; --white: #FFFFFF; --code-bg: #0F1923;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Instrument Sans', sans-serif; background: var(--cream); color: var(--navy); line-height: 1.6; overflow-x: hidden; }
+
+  /* HERO */
+  .hero { background: var(--navy); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; position: relative; overflow: hidden; }
+  .hero::before { content:''; position:absolute; width:600px; height:600px; border-radius:50%; background:radial-gradient(circle,rgba(45,125,210,0.18) 0%,transparent 70%); top:-150px; right:-100px; pointer-events:none; }
+  .hero-left { display:flex; flex-direction:column; justify-content:center; padding:80px 60px 80px 80px; position:relative; z-index:2; }
+  .hero-tag { display:inline-flex; align-items:center; gap:8px; background:rgba(45,125,210,0.15); border:1px solid rgba(45,125,210,0.4); color:#6BB6F0; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; padding:6px 14px; border-radius:20px; margin-bottom:32px; width:fit-content; animation:fadeUp 0.6s ease both; }
+  .hero-tag::before { content:'▶'; font-size:8px; color:var(--gold); }
+  .hero-title { font-family:'DM Serif Display',serif; font-size:clamp(42px,5vw,68px); color:var(--white); line-height:1.05; margin-bottom:24px; animation:fadeUp 0.6s 0.1s ease both; }
+  .hero-title em { font-style:italic; color:var(--gold); }
+  .hero-subtitle { font-size:16px; color:var(--muted); max-width:420px; margin-bottom:48px; animation:fadeUp 0.6s 0.2s ease both; }
+  .hero-meta { display:flex; gap:32px; animation:fadeUp 0.6s 0.3s ease both; }
+  .meta-item { display:flex; flex-direction:column; gap:4px; }
+  .meta-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .meta-value { font-size:15px; color:var(--white); font-weight:600; }
+  .hero-right { display:flex; align-items:center; justify-content:center; padding:80px 80px 80px 40px; position:relative; z-index:2; }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; max-width:420px; animation:fadeIn 0.8s 0.4s ease both; }
+  .stat-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:28px 24px; transition:all 0.3s ease; }
+  .stat-card:hover { background:rgba(45,125,210,0.1); border-color:rgba(45,125,210,0.4); transform:translateY(-3px); }
+  .stat-card.wide { grid-column:1/-1; }
+  .stat-number { font-family:'DM Serif Display',serif; font-size:36px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .stat-number.red { color:#E05A5A; }
+  .stat-desc { font-size:12px; color:var(--muted); }
+
+  /* LAYOUT */
+  section { padding:100px 80px; max-width:1200px; margin:0 auto; }
+  .section-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); margin-bottom:16px; }
+  .section-title { font-family:'DM Serif Display',serif; font-size:clamp(32px,3.5vw,48px); color:var(--navy); margin-bottom:48px; line-height:1.1; }
+  .divider { height:1px; background:linear-gradient(90deg,transparent,#C8D8E8,transparent); margin:0 80px; }
+
+  /* PGADMIN MOCKUP */
+  .pgadmin-window {
+    border-radius:10px; overflow:hidden;
+    box-shadow:0 24px 64px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    font-family:'DM Mono',monospace; font-size:11px;
+    background:#1e1e2e; border:1px solid #313145;
+  }
+  .pg-titlebar { background:#2a2a3f; padding:9px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #1a1a2e; }
+  .pg-dots { display:flex; gap:6px; }
+  .pg-dot { width:11px; height:11px; border-radius:50%; }
+  .pg-dot.red { background:#ff5f57; } .pg-dot.yellow { background:#febc2e; } .pg-dot.green { background:#28c840; }
+  .pg-wintitle { color:#555575; font-size:11px; margin-left:8px; font-family:'Instrument Sans',sans-serif; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+  .pg-menubar { background:#232336; padding:4px 14px; display:flex; gap:18px; border-bottom:1px solid #1a1a2e; }
+  .pg-menu { color:#666688; font-size:11px; font-family:'Instrument Sans',sans-serif; padding:3px 0; cursor:default; }
+  .pg-menu.active { color:#7CB9F4; border-bottom:2px solid #3B82F6; }
+
+  .pg-body { display:grid; grid-template-columns:155px 1fr; }
+
+  .pg-tree { background:#181828; border-right:1px solid #1a1a2e; padding:8px 0; overflow:hidden; }
+  .pg-ti { padding:3px 8px; display:flex; align-items:center; gap:4px; color:#888899; font-size:10px; font-family:'Instrument Sans',sans-serif; white-space:nowrap; }
+  .pg-ti.sel { background:rgba(96,165,250,0.12); color:#93C5FD; border-left:2px solid #3B82F6; }
+  .pg-ti .arr { color:#444460; font-size:8px; }
+
+  .pg-right { display:flex; flex-direction:column; }
+  .pg-tabs { background:#222235; display:flex; border-bottom:1px solid #1a1a2e; }
+  .pg-tab { padding:7px 16px; font-size:11px; color:#666688; font-family:'Instrument Sans',sans-serif; border-right:1px solid #1a1a2e; cursor:default; }
+  .pg-tab.on { background:#1e1e2e; color:#93C5FD; border-bottom:2px solid #3B82F6; }
+
+  .pg-editor { background:#1e1e2e; padding:14px 0 14px 8px; min-height:68px; border-bottom:1px solid #1a1a2e; display:flex; gap:0; }
+  .pg-lnum { width:28px; text-align:right; padding-right:8px; color:#3a3a55; font-size:10px; line-height:1.75; user-select:none; flex-shrink:0; }
+  .pg-code { flex:1; padding-right:12px; }
+  .cl { display:block; line-height:1.75; color:#CDD6F4; }
+  .kw { color:#CBA6F7; font-weight:500; }
+  .fn { color:#A6E3A1; }
+  .tb { color:#89DCEB; }
+  .al { color:#F9E2AF; }
+  .op { color:#FAB387; }
+  .cm { color:#45475A; font-style:italic; }
+  .nm { color:#FAB387; }
+
+  .pg-bar { background:#222235; padding:5px 12px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #1a1a2e; }
+  .pg-run { background:#2563EB; color:white; border:none; border-radius:4px; padding:4px 10px; font-size:10px; font-family:'Instrument Sans',sans-serif; font-weight:600; cursor:default; }
+  .pg-ghost { background:transparent; color:#555575; border:1px solid #2a2a3e; border-radius:4px; padding:3px 8px; font-size:10px; font-family:'Instrument Sans',sans-serif; cursor:default; }
+  .pg-ok { margin-left:auto; color:#A6E3A1; font-size:10px; font-family:'Instrument Sans',sans-serif; }
+
+  .pg-res { background:#131320; }
+  .pg-rtabs { background:#1a1a2a; display:flex; padding:0 8px; border-bottom:1px solid #111120; }
+  .pg-rtab { padding:5px 12px; font-size:10px; color:#555575; font-family:'Instrument Sans',sans-serif; cursor:default; }
+  .pg-rtab.on { color:#93C5FD; border-bottom:2px solid #3B82F6; }
+  .pg-rinfo { padding:5px 14px; background:#16162a; border-bottom:1px solid #111120; display:flex; justify-content:space-between; }
+  .pg-rcount { font-size:10px; color:#555575; font-family:'Instrument Sans',sans-serif; }
+  .pg-rtime { font-size:10px; color:#A6E3A1; font-family:'Instrument Sans',sans-serif; }
+
+  .pg-tbl { width:100%; border-collapse:collapse; }
+  .pg-tbl thead tr { background:#1e1e32; }
+  .pg-tbl thead th { padding:7px 14px; text-align:left; font-size:10px; color:#6B7A9F; font-family:'Instrument Sans',sans-serif; font-weight:600; border-right:1px solid #1a1a2e; border-bottom:1px solid #1a1a2e; white-space:nowrap; }
+  .pg-tbl thead th .tp { display:block; font-size:8px; color:#3D3D5C; font-weight:400; font-family:'DM Mono',monospace; }
+  .pg-tbl tbody tr { border-bottom:1px solid #1a1a2a; }
+  .pg-tbl tbody tr:hover { background:rgba(96,165,250,0.04); }
+  .pg-tbl tbody td { padding:6px 14px; font-size:11px; color:#CDD6F4; font-family:'DM Mono',monospace; border-right:1px solid #111120; white-space:nowrap; }
+  .pg-tbl td.rn { color:#2D2D48; font-size:10px; width:28px; text-align:center; }
+  .pg-tbl td.hi { color:#A6E3A1; }
+  .pg-tbl td.lo { color:#F38BA8; }
+  .pg-tbl td.go { color:#F9E2AF; }
+  .pg-foot { background:#16162a; padding:5px 14px; display:flex; justify-content:space-between; border-top:1px solid #111120; }
+  .pg-fl { font-size:10px; color:#555575; font-family:'Instrument Sans',sans-serif; }
+  .pg-fr { font-size:10px; color:#3D3D5C; font-family:'DM Mono',monospace; }
+
+  /* QUERY BLOCKS */
+  .queries-grid { display:flex; flex-direction:column; gap:64px; }
+  .q-meta { display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+  .q-num { background:var(--accent); color:white; font-family:'DM Mono',monospace; font-size:11px; padding:4px 12px; border-radius:20px; }
+  .q-title { font-family:'DM Serif Display',serif; font-size:24px; color:var(--navy); }
+  .rbadge { margin-left:auto; display:inline-flex; align-items:center; padding:6px 14px; border-radius:8px; font-family:'DM Mono',monospace; font-size:12px; font-weight:500; }
+  .rbadge.pos { background:#E8F5EE; color:#2A7A4B; }
+  .rbadge.neg { background:#FEF0F0; color:#C0392B; }
+  .rbadge.neu { background:#EBF4FD; color:#1A5C9A; }
+  .q-desc { font-size:15px; color:#4A5568; margin-bottom:20px; line-height:1.7; max-width:820px; }
+
+  /* RESULTS TABLE */
+  .results-section { background:#F0F4F8; padding:80px; }
+  .results-section > div { max-width:1200px; margin:0 auto; }
+  .rtable-wrap { overflow-x:auto; border-radius:16px; box-shadow:0 4px 24px rgba(13,27,42,0.08); }
+  table.mt { width:100%; border-collapse:collapse; background:white; }
+  table.mt thead tr { background:var(--navy); }
+  table.mt thead th { padding:18px 24px; text-align:left; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.7); font-family:'DM Mono',monospace; font-weight:400; }
+  table.mt tbody tr { transition:background 0.2s; border-bottom:1px solid #E8EDF2; }
+  table.mt tbody tr:hover { background:#EBF4FD; }
+  table.mt tbody td { padding:16px 24px; font-size:14px; }
+  .bw { background:#E8F5EE; color:#2A7A4B; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+  .bl { background:#FEF0F0; color:#C0392B; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+
+  /* INSIGHTS */
+  .ig { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .ic { background:white; border-radius:16px; padding:32px 28px; border:1px solid #E0E8F0; position:relative; overflow:hidden; transition:all 0.3s; }
+  .ic:hover { border-color:var(--accent); transform:translateY(-4px); box-shadow:0 12px 40px rgba(45,125,210,0.12); }
+  .ic::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--accent),var(--gold)); }
+  .ic-icon { font-size:32px; margin-bottom:16px; display:block; }
+  .ic-title { font-weight:700; font-size:15px; color:var(--navy); margin-bottom:10px; }
+  .ic-body { font-size:13px; color:#4A5568; line-height:1.7; }
+
+  /* SKILLS */
+  .skills-section { background:var(--navy); padding:80px; }
+  .skills-section > div { max-width:1200px; margin:0 auto; }
+  .skills-section .section-title { color:white; }
+  .sg { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .sp { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 20px; transition:all 0.3s; }
+  .sp:hover { background:rgba(45,125,210,0.2); border-color:rgba(45,125,210,0.5); }
+  .sd { width:8px; height:8px; border-radius:50%; background:var(--gold); flex-shrink:0; }
+  .st { font-size:13px; color:rgba(255,255,255,0.85); }
+
+  /* CONCLUSION */
+  .cb { background:linear-gradient(135deg,var(--blue),var(--navy)); border-radius:24px; padding:60px; color:white; position:relative; overflow:hidden; }
+  .cb::before { content:'"'; position:absolute; font-family:'DM Serif Display',serif; font-size:300px; color:rgba(255,255,255,0.03); top:-80px; left:20px; line-height:1; }
+  .ct { font-family:'DM Serif Display',serif; font-size:clamp(20px,2vw,28px); line-height:1.5; max-width:700px; position:relative; z-index:1; margin-bottom:32px; }
+  .ct em { color:var(--gold); font-style:italic; }
+  .cm2 { display:flex; gap:40px; position:relative; z-index:1; }
+  .cmi { display:flex; flex-direction:column; gap:4px; }
+  .cml { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+  .cmv { font-size:15px; color:rgba(255,255,255,0.9); font-weight:600; }
+
+  /* ANIM */
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .reveal { opacity:0; transform:translateY(30px); transition:opacity 0.6s ease,transform 0.6s ease; }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+
+  @media(max-width:900px){
+    .hero{grid-template-columns:1fr;min-height:auto} .hero-right{display:none}
+    .hero-left{padding:60px 32px} section{padding:60px 32px} .divider{margin:0 32px}
+    .ig,.sg{grid-template-columns:1fr 1fr} .results-section,.skills-section{padding:60px 32px} .cb{padding:40px 32px}
+    .q-meta{flex-wrap:wrap} .rbadge{margin-left:0}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-left">
+    <span class="hero-tag">Portfolio Project — April 2026</span>
+    <h1 class="hero-title">Sales &amp;<br><em>Profit Analysis</em><br>using PostgreSQL</h1>
+    <p class="hero-subtitle">An end-to-end SQL analysis of retail superstore data — uncovering revenue patterns, loss-making orders, and state-wise performance using PostgreSQL and pgAdmin 4.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><span class="meta-label">Name</span><span class="meta-value">Purv D</span></div>
+      <div class="meta-item"><span class="meta-label">Course</span><span class="meta-value">BMS</span></div>
+      <div class="meta-item"><span class="meta-label">Tools</span><span class="meta-value">PostgreSQL · pgAdmin 4</span></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-number">$1,988</div><div class="stat-desc">Total Sales Generated</div></div>
+      <div class="stat-card"><div class="stat-number red">−$112</div><div class="stat-desc">Net Profit (Loss)</div></div>
+      <div class="stat-card"><div class="stat-number">3</div><div class="stat-desc">States Analyzed</div></div>
+      <div class="stat-card"><div class="stat-number">5</div><div class="stat-desc">SQL Queries Written</div></div>
+      <div class="stat-card wide"><div class="stat-number" style="font-size:24px;color:#6BB6F0">Kentucky → Top State</div><div class="stat-desc">Highest revenue at $993.90 · Florida driving losses</div></div>
+    </div>
+  </div>
+</header>
+
+<section class="reveal">
+  <div class="section-label">// Project Overview</div>
+  <h2 class="section-title">What this project set out to solve</h2>
+  <p style="font-size:16px;color:#4A5568;max-width:700px;line-height:1.8">Using the Superstore retail dataset, this project applies structured SQL queries in PostgreSQL to answer key business questions: <strong>Where is revenue coming from? Which customers are most valuable? Where is the business losing money?</strong> Every query below is shown exactly as it ran inside pgAdmin 4.</p>
+</section>
+
+<div class="divider"></div>
+
+<section class="reveal">
+  <div class="section-label">// SQL Analysis</div>
+  <h2 class="section-title">Queries &amp; Results</h2>
+  <div class="queries-grid">
+
+    <!-- Q1 -->
+    <div>
+      <div class="q-meta">
+        <span class="q-num">Query 01</span>
+        <span class="q-title">Total Sales</span>
+        <span class="rbadge neu">$1,988.47 total sales</span>
+      </div>
+      <p class="q-desc">Calculates the aggregate sum of all sales transactions to understand the business's top-line revenue in a single number.</p>
+      <div class="pgadmin-window">
+        <div class="pg-titlebar"><div class="pg-dots"><div class="pg-dot red"></div><div class="pg-dot yellow"></div><div class="pg-dot green"></div></div><span class="pg-wintitle">finance_project/postgres@PostgreSQL 18 — pgAdmin 4</span></div>
+        <div class="pg-menubar"><span class="pg-menu">File</span><span class="pg-menu">Edit</span><span class="pg-menu active">Query</span><span class="pg-menu">Tools</span><span class="pg-menu">Help</span></div>
+        <div class="pg-body">
+          <div class="pg-tree">
+            <div class="pg-ti"><span class="arr">▼</span>🗄️ finance_project</div>
+            <div class="pg-ti" style="padding-left:20px"><span class="arr">▼</span>📁 Schemas (1)</div>
+            <div class="pg-ti" style="padding-left:32px"><span class="arr">▼</span>📂 public</div>
+            <div class="pg-ti" style="padding-left:44px"><span class="arr">▼</span>📋 Tables (2)</div>
+            <div class="pg-ti sel" style="padding-left:56px">📊 superstore</div>
+            <div class="pg-ti" style="padding-left:68px;opacity:0.4">📌 Columns</div>
+            <div class="pg-ti" style="padding-left:68px;opacity:0.4">🔑 Constraints</div>
+          </div>
+          <div class="pg-right">
+            <div class="pg-tabs"><div class="pg-tab on">Query Editor</div><div class="pg-tab">Query History</div></div>
+            <div class="pg-editor">
+              <div class="pg-lnum">1<br>2</div>
+              <div class="pg-code">
+                <span class="cl"><span class="kw">SELECT</span> <span class="fn">SUM</span>(<span class="tb">sales</span>) <span class="kw">AS</span> <span class="al">total_sales</span></span>
+                <span class="cl"><span class="kw">FROM</span> <span class="tb">superstore</span>;</span>
+              </div>
+            </div>
+            <div class="pg-bar"><button class="pg-run">▶ Run</button><button class="pg-ghost">Explain</button><button class="pg-ghost">Save</button><span class="pg-ok">✓ Query complete 00:00:00.084</span></div>
+            <div class="pg-res">
+              <div class="pg-rtabs"><div class="pg-rtab on">Data Output</div><div class="pg-rtab">Messages</div><div class="pg-rtab">Notifications</div></div>
+              <div class="pg-rinfo"><span class="pg-rcount">Showing rows: 1 to 1 &nbsp;|&nbsp; Page No: 1 of 1</span><span class="pg-rtime">Query complete in 84ms</span></div>
+              <table class="pg-tbl">
+                <thead><tr><th></th><th>total_sales <span class="tp">numeric</span></th></tr></thead>
+                <tbody><tr><td class="rn">1</td><td class="hi">1988.4655</td></tr></tbody>
+              </table>
+              <div class="pg-foot"><span class="pg-fl">Total rows: 1 &nbsp;·&nbsp; Query complete 00:00:00.084</span><span class="pg-fr">Ln 1, Col 50</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div>
+      <div class="q-meta">
+        <span class="q-num">Query 02</span>
+        <span class="q-title">Sales by State</span>
+        <span class="rbadge pos">Kentucky leads at $993.90</span>
+      </div>
+      <p class="q-desc">Groups all orders by state and ranks them by total sales descending — identifying which regions are driving and which are dragging revenue.</p>
+      <div class="pgadmin-window">
+        <div class="pg-titlebar"><div class="pg-dots"><div class="pg-dot red"></div><div class="pg-dot yellow"></div><div class="pg-dot green"></div></div><span class="pg-wintitle">finance_project/postgres@PostgreSQL 18 — pgAdmin 4</span></div>
+        <div class="pg-menubar"><span class="pg-menu">File</span><span class="pg-menu">Edit</span><span class="pg-menu active">Query</span><span class="pg-menu">Tools</span></div>
+        <div class="pg-body">
+          <div class="pg-tree">
+            <div class="pg-ti"><span class="arr">▼</span>🗄️ finance_project</div>
+            <div class="pg-ti" style="padding-left:20px"><span class="arr">▼</span>📂 public</div>
+            <div class="pg-ti sel" style="padding-left:32px">📊 superstore</div>
+            <div class="pg-ti" style="padding-left:44px;opacity:0.4">📌 Columns</div>
+          </div>
+          <div class="pg-right">
+            <div class="pg-tabs"><div class="pg-tab on">Query Editor</div><div class="pg-tab">Query History</div></div>
+            <div class="pg-editor">
+              <div class="pg-lnum">1<br>2<br>3<br>4</div>
+              <div class="pg-code">
+                <span class="cl"><span class="kw">SELECT</span> <span class="tb">state</span>, <span class="fn">SUM</span>(<span class="tb">sales</span>) <span class="kw">AS</span> <span class="al">sales</span></span>
+                <span class="cl"><span class="kw">FROM</span> <span class="tb">superstore</span></span>
+                <span class="cl"><span class="kw">GROUP BY</span> <span class="tb">state</span></span>
+                <span class="cl"><span class="kw">ORDER BY</span> <span class="al">sales</span> <span class="op">DESC</span>;</span>
+              </div>
+            </div>
+            <div class="pg-bar"><button class="pg-run">▶ Run</button><button class="pg-ghost">Explain</button><button class="pg-ghost">Save</button><span class="pg-ok">✓ Query complete 00:00:00.080</span></div>
+            <div class="pg-res">
+              <div class="pg-rtabs"><div class="pg-rtab on">Data Output</div><div class="pg-rtab">Messages</div></div>
+              <div class="pg-rinfo"><span class="pg-rcount">Showing rows: 1 to 3 of 3</span><span class="pg-rtime">Query complete in 80ms</span></div>
+              <table class="pg-tbl">
+                <thead><tr><th></th><th>state <span class="tp">text</span></th><th>sales <span class="tp">numeric</span></th></tr></thead>
+                <tbody>
+                  <tr><td class="rn">1</td><td class="hi">Kentucky</td><td class="hi">993.90</td></tr>
+                  <tr><td class="rn">2</td><td class="go">Florida</td><td class="go">979.9455</td></tr>
+                  <tr><td class="rn">3</td><td>California</td><td>14.62</td></tr>
+                </tbody>
+              </table>
+              <div class="pg-foot"><span class="pg-fl">Total rows: 3 &nbsp;·&nbsp; Query complete 00:00:00.080</span><span class="pg-fr">Ln 4, Col 22</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div>
+      <div class="q-meta">
+        <span class="q-num">Query 03</span>
+        <span class="q-title">Top Customers by Total Spend</span>
+        <span class="rbadge pos">Claire Gute — #1 at $993.90</span>
+      </div>
+      <p class="q-desc">Ranks every customer by their total purchase value to surface high-value accounts and enable targeted retention strategy.</p>
+      <div class="pgadmin-window">
+        <div class="pg-titlebar"><div class="pg-dots"><div class="pg-dot red"></div><div class="pg-dot yellow"></div><div class="pg-dot green"></div></div><span class="pg-wintitle">finance_project/postgres@PostgreSQL 18 — pgAdmin 4</span></div>
+        <div class="pg-menubar"><span class="pg-menu">File</span><span class="pg-menu">Edit</span><span class="pg-menu active">Query</span><span class="pg-menu">Tools</span></div>
+        <div class="pg-body">
+          <div class="pg-tree">
+            <div class="pg-ti"><span class="arr">▼</span>🗄️ finance_project</div>
+            <div class="pg-ti sel" style="padding-left:20px">📊 superstore</div>
+            <div class="pg-ti" style="padding-left:32px;opacity:0.4">📌 Columns</div>
+            <div class="pg-ti" style="padding-left:32px;opacity:0.4">🔑 Constraints</div>
+            <div class="pg-ti" style="padding-left:32px;opacity:0.4">📈 Indexes</div>
+          </div>
+          <div class="pg-right">
+            <div class="pg-tabs"><div class="pg-tab on">Query Editor</div><div class="pg-tab">Query History</div></div>
+            <div class="pg-editor">
+              <div class="pg-lnum">1<br>2<br>3<br>4</div>
+              <div class="pg-code">
+                <span class="cl"><span class="kw">SELECT</span> <span class="tb">customer_name</span>, <span class="fn">SUM</span>(<span class="tb">sales</span>) <span class="kw">AS</span> <span class="al">total_spent</span></span>
+                <span class="cl"><span class="kw">FROM</span> <span class="tb">superstore</span></span>
+                <span class="cl"><span class="kw">GROUP BY</span> <span class="tb">customer_name</span></span>
+                <span class="cl"><span class="kw">ORDER BY</span> <span class="al">total_spent</span> <span class="op">DESC</span>;</span>
+              </div>
+            </div>
+            <div class="pg-bar"><button class="pg-run">▶ Run</button><button class="pg-ghost">Explain</button><span class="pg-ok">✓ Query complete 00:00:00.091</span></div>
+            <div class="pg-res">
+              <div class="pg-rtabs"><div class="pg-rtab on">Data Output</div><div class="pg-rtab">Messages</div></div>
+              <div class="pg-rinfo"><span class="pg-rcount">Showing rows: 1 to 3 of 3</span><span class="pg-rtime">Query complete in 91ms</span></div>
+              <table class="pg-tbl">
+                <thead><tr><th></th><th>customer_name <span class="tp">text</span></th><th>total_spent <span class="tp">numeric</span></th></tr></thead>
+                <tbody>
+                  <tr><td class="rn">1</td><td class="hi">Claire Gute</td><td class="hi">993.90</td></tr>
+                  <tr><td class="rn">2</td><td>Sean O'Donnell</td><td class="go">979.9455</td></tr>
+                  <tr><td class="rn">3</td><td>Darrin Van Huff</td><td>14.62</td></tr>
+                </tbody>
+              </table>
+              <div class="pg-foot"><span class="pg-fl">Total rows: 3 &nbsp;·&nbsp; Query complete 00:00:00.091</span><span class="pg-fr">Ln 4, Col 31</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div>
+      <div class="q-meta">
+        <span class="q-num">Query 04</span>
+        <span class="q-title">Loss-Making Orders</span>
+        <span class="rbadge neg">1 loss order — Florida</span>
+      </div>
+      <p class="q-desc">Filters all orders where profit is negative. Each row returned is a transaction that lost money despite generating revenue — the root of the overall loss.</p>
+      <div class="pgadmin-window">
+        <div class="pg-titlebar"><div class="pg-dots"><div class="pg-dot red"></div><div class="pg-dot yellow"></div><div class="pg-dot green"></div></div><span class="pg-wintitle">finance_project/postgres@PostgreSQL 18 — pgAdmin 4</span></div>
+        <div class="pg-menubar"><span class="pg-menu">File</span><span class="pg-menu">Edit</span><span class="pg-menu active">Query</span><span class="pg-menu">Tools</span></div>
+        <div class="pg-body">
+          <div class="pg-tree">
+            <div class="pg-ti"><span class="arr">▼</span>🗄️ finance_project</div>
+            <div class="pg-ti sel" style="padding-left:20px">📊 superstore</div>
+          </div>
+          <div class="pg-right">
+            <div class="pg-tabs"><div class="pg-tab on">Query Editor</div><div class="pg-tab">Query History</div></div>
+            <div class="pg-editor">
+              <div class="pg-lnum">1<br>2<br>3</div>
+              <div class="pg-code">
+                <span class="cl"><span class="kw">SELECT</span> <span class="op">*</span></span>
+                <span class="cl"><span class="kw">FROM</span> <span class="tb">superstore</span></span>
+                <span class="cl"><span class="kw">WHERE</span> <span class="tb">profit</span> <span class="op">&lt;</span> <span class="nm">0</span>;</span>
+              </div>
+            </div>
+            <div class="pg-bar"><button class="pg-run">▶ Run</button><button class="pg-ghost">Explain</button><span class="pg-ok">✓ Query complete 00:00:00.204</span></div>
+            <div class="pg-res">
+              <div class="pg-rtabs"><div class="pg-rtab on">Data Output</div><div class="pg-rtab">Messages</div></div>
+              <div class="pg-rinfo"><span class="pg-rcount">Showing rows: 1 to 1 of 1</span><span class="pg-rtime">Query complete in 204ms</span></div>
+              <table class="pg-tbl">
+                <thead><tr><th></th><th>order_id <span class="tp">text</span></th><th>order_date <span class="tp">date</span></th><th>ship_mode <span class="tp">text</span></th><th>customer_name <span class="tp">text</span></th><th>state <span class="tp">text</span></th><th>profit <span class="tp">numeric</span></th></tr></thead>
+                <tbody>
+                  <tr><td class="rn">1</td><td>US-2016-1089...</td><td>2016-10-11</td><td>Standard Class</td><td>Sean O'Donnell</td><td class="lo">Florida</td><td class="lo">-383.0310</td></tr>
+                </tbody>
+              </table>
+              <div class="pg-foot"><span class="pg-fl">Total rows: 1 &nbsp;·&nbsp; Query complete 00:00:00.204</span><span class="pg-fr">Ln 3, Col 18</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div>
+      <div class="q-meta">
+        <span class="q-num">Query 05</span>
+        <span class="q-title">Total Profit</span>
+        <span class="rbadge neg">Net loss of −$112.15</span>
+      </div>
+      <p class="q-desc">Aggregates profit across all orders to reveal the final net result. Despite $1,988 in sales, heavy discounts in Florida flip the overall profit into the red.</p>
+      <div class="pgadmin-window">
+        <div class="pg-titlebar"><div class="pg-dots"><div class="pg-dot red"></div><div class="pg-dot yellow"></div><div class="pg-dot green"></div></div><span class="pg-wintitle">finance_project/postgres@PostgreSQL 18 — pgAdmin 4</span></div>
+        <div class="pg-menubar"><span class="pg-menu">File</span><span class="pg-menu">Edit</span><span class="pg-menu active">Query</span><span class="pg-menu">Tools</span></div>
+        <div class="pg-body">
+          <div class="pg-tree">
+            <div class="pg-ti"><span class="arr">▼</span>🗄️ finance_project</div>
+            <div class="pg-ti sel" style="padding-left:20px">📊 superstore</div>
+            <div class="pg-ti" style="padding-left:32px;opacity:0.4">📌 Columns</div>
+          </div>
+          <div class="pg-right">
+            <div class="pg-tabs"><div class="pg-tab on">Query Editor</div><div class="pg-tab">Query History</div></div>
+            <div class="pg-editor">
+              <div class="pg-lnum">1<br>2</div>
+              <div class="pg-code">
+                <span class="cl"><span class="kw">SELECT</span> <span class="fn">SUM</span>(<span class="tb">profit</span>) <span class="kw">AS</span> <span class="al">total_profit</span></span>
+                <span class="cl"><span class="kw">FROM</span> <span class="tb">superstore</span>;</span>
+              </div>
+            </div>
+            <div class="pg-bar"><button class="pg-run">▶ Run</button><button class="pg-ghost">Explain</button><span class="pg-ok">✓ Query complete 00:00:00.107</span></div>
+            <div class="pg-res">
+              <div class="pg-rtabs"><div class="pg-rtab on">Data Output</div><div class="pg-rtab">Messages</div></div>
+              <div class="pg-rinfo"><span class="pg-rcount">Showing rows: 1 to 1 of 1</span><span class="pg-rtime">Query complete in 107ms</span></div>
+              <table class="pg-tbl">
+                <thead><tr><th></th><th>total_profit <span class="tp">numeric</span></th></tr></thead>
+                <tbody><tr><td class="rn">1</td><td class="lo">-112.1476</td></tr></tbody>
+              </table>
+              <div class="pg-foot"><span class="pg-fl">Total rows: 1 &nbsp;·&nbsp; Query complete 00:00:00.107</span><span class="pg-fr">Ln 2, Col 32</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<div class="results-section reveal">
+  <div>
+    <div class="section-label">// Data Output</div>
+    <h2 class="section-title" style="margin-bottom:32px">State Performance Summary</h2>
+    <div class="rtable-wrap">
+      <table class="mt">
+        <thead><tr><th>State</th><th>Total Sales</th><th>Top Customer</th><th>Profit Status</th><th>Key Issue</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Kentucky</strong></td><td>$993.90</td><td>Claire Gute</td><td><span class="bw">Profitable</span></td><td>—</td></tr>
+          <tr><td><strong>Florida</strong></td><td>$979.95</td><td>Sean O'Donnell</td><td><span class="bl">Loss-Making</span></td><td>High discounts · Standard Class shipping</td></tr>
+          <tr><td><strong>California</strong></td><td>$14.62</td><td>Darrin Van Huff</td><td><span class="bw">Marginal</span></td><td>Low order volume</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<section class="reveal">
+  <div class="section-label">// Key Insights</div>
+  <h2 class="section-title">What the data reveals</h2>
+  <div class="ig">
+    <div class="ic"><span class="ic-icon">📊</span><div class="ic-title">Revenue ≠ Profit</div><p class="ic-body">$1,988 in sales but −$112 net profit. Strong top-line numbers mask a serious margin problem caused by discounting and shipping costs.</p></div>
+    <div class="ic"><span class="ic-icon">📍</span><div class="ic-title">Florida is the Problem State</div><p class="ic-body">Despite being #2 in revenue, Florida drives the losses. High discount rates and Standard Class shipping erode the margin completely.</p></div>
+    <div class="ic"><span class="ic-icon">🏆</span><div class="ic-title">Kentucky Leads Profitability</div><p class="ic-body">Kentucky generates the highest sales at $993.90 and is the most profitable region — a model for how other states should be managed.</p></div>
+    <div class="ic"><span class="ic-icon">👤</span><div class="ic-title">Two Customers = 99% of Sales</div><p class="ic-body">Claire Gute and Sean O'Donnell together account for nearly all revenue — highlighting high customer concentration risk.</p></div>
+    <div class="ic"><span class="ic-icon">⚠️</span><div class="ic-title">Loss Orders Must Be Flagged</div><p class="ic-body">Some orders generate revenue but produce negative profit. A real-time profitability threshold should be implemented at order entry.</p></div>
+    <div class="ic"><span class="ic-icon">🔧</span><div class="ic-title">Strategic Action Required</div><p class="ic-body">Pricing strategy, discount controls, and shipping mode optimisation are the three levers that could turn this business profitable.</p></div>
+  </div>
+</section>
+
+<div class="skills-section reveal">
+  <div>
+    <div class="section-label" style="color:var(--gold)">// Skills Demonstrated</div>
+    <h2 class="section-title">What was applied in this project</h2>
+    <div class="sg">
+      <div class="sp"><div class="sd"></div><span class="st">PostgreSQL — Relational Database Management</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">SQL Aggregate Functions — SUM(), GROUP BY</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Data Filtering — WHERE clause, conditionals</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Sorting &amp; Ranking — ORDER BY DESC/ASC</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">pgAdmin 4 — GUI query execution &amp; schema management</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Business Analysis — SQL output → actionable insights</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Financial Reporting — Revenue vs. profit understanding</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Retail Data Analysis — Superstore dataset exploration</span></div>
+      <div class="sp"><div class="sd"></div><span class="st">Data Storytelling — Structured project documentation</span></div>
+    </div>
+  </div>
+</div>
+
+<section class="reveal">
+  <div class="section-label">// Conclusion</div>
+  <div class="cb">
+    <p class="ct">This project proves that <em>strong sales alone don't guarantee a healthy business.</em> Through structured SQL analysis I identified a $112 profit gap, pinpointed Florida as the loss-driving state, and surfaced actionable recommendations — all from five queries.</p>
+    <div class="cm2">
+      <div class="cmi"><span class="cml">Project Type</span><span class="cmv">Finance Data Analysis</span></div>
+      <div class="cmi"><span class="cml">Technology</span><span class="cmv">PostgreSQL · pgAdmin 4 · SQL</span></div>
+      <div class="cmi"><span class="cml">Course</span><span class="cmv">BMS — April 2026</span></div>
+      <div class="cmi"><span class="cml">Author</span><span class="cmv">Purv D</span></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach((e,i) => { if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('visible'),i*80); obs.unobserve(e.target); } });
+  }, {threshold:0.08});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
